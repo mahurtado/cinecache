@@ -1,0 +1,17 @@
+# OS files
+.DS_Store
+Thumbs.db
+
+# Compiled Go binaries and directories
+/cinecache-backend/server
+/cinecache-backend/cinecache-backend
+
+# Frontend dependencies and build outputs
+/cinecache-frontend/node_modules/
+/cinecache-frontend/.next/
+/cinecache-frontend/out/
+/cinecache-frontend/build/
+/cinecache-frontend/.env*.local
+
+# Local Valkey dumps (keep compressed gzip file, ignore decompressed dump)
+/cinecache-data/dump.rdb
