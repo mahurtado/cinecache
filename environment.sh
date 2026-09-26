@@ -10,11 +10,11 @@
 
 # 1. Target Google Cloud Project ID
 # The GCP Project where all resources (Cloud Run, Memorystore, Artifact Registry) reside.
-export PROJECT_ID="YOUR_GCP_PROJECT_ID"
+export PROJECT_ID="${PROJECT_ID:-YOUR_GCP_PROJECT_ID}"
 
 # 2. Google Cloud Region
 # The deployment region for Cloud Run services and Memorystore instances.
-export REGION_1="europe-west1"
+export REGION_1="${REGION_1:-YOUR_GCP_REGION}"
 
 # 3. Serverless VPC Access Connector Name
 # The VPC Access Connector used to establish private connections from Cloud Run to Memorystore.

@@ -25,7 +25,7 @@ BACKEND_URL=$(gcloud run services describe movies-backend \
 
 if [ -z "$BACKEND_URL" ]; then
   echo "Error: Movies Go Backend (movies-backend) service URL could not be discovered."
-  echo "Please ensure the backend is deployed first using ./movies-backend/deploy.sh."
+  echo "Please ensure the backend is deployed first using ./cinecache-backend/deploy.sh."
   exit 1
 fi
 

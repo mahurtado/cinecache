@@ -15,3 +15,6 @@ Thumbs.db
 
 # Local Valkey dumps (keep compressed gzip file, ignore decompressed dump)
 /cinecache-data/dump.rdb
+
+# IDE configuration
+.vscode/

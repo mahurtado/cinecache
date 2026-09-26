@@ -19,9 +19,16 @@ echo "====================================================================="
 # 1. Discover Valkey Single private IP endpoint to set as default VALKEY_HOST
 echo "Discovering private endpoint for Valkey Single ($VALKEY_SINGLE_NAME)..."
 VALKEY_IP=$(gcloud memorystore instances describe "$VALKEY_SINGLE_NAME" \
-  --region="$REGION_1" \
+  --location="$REGION_1" \
   --project="$PROJECT_ID" \
-  --format="value(endpoints[0].pscConnections[0].address)" 2>/dev/null)
+  --format="value(endpoints[0].connections[0].pscAutoConnection.ipAddress)" 2>/dev/null)
+
+if [ -z "$VALKEY_IP" ]; then
+  VALKEY_IP=$(gcloud memorystore instances describe "$VALKEY_SINGLE_NAME" \
+    --location="$REGION_1" \
+    --project="$PROJECT_ID" \
+    --format="value(endpoints[0].pscConnections[0].address)" 2>/dev/null)
+fi
 
 if [ -z "$VALKEY_IP" ]; then
   echo "Error: Valkey Single private IP could not be discovered."
