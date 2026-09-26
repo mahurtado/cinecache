@@ -1,5 +1,7 @@
 import MoviesShowcase from "./MoviesShowcase";
 
+export const dynamic = 'force-dynamic';
+
 const BACKEND_URL = process.env.BACKEND_URL || 'https://movies-backend-215265975223.europe-west1.run.app';
 const BACKEND_TOKEN = process.env.BACKEND_TOKEN || '';
 

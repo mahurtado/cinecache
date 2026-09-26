@@ -91,11 +91,20 @@ export default function MoviesShowcase({ initialGenres }: { initialGenres: Genre
     }
   };
 
+  // Pre-fetch genres immediately on mount if not already populated
+  useEffect(() => {
+    if (genres.length === 0) {
+      fetchGenres();
+    }
+  }, []);
+
   // Handle actor autocomplete input typing changes
   const handleActorInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setActorSearchInput(val);
-    setSelectedActor(null); // Clear selected actor if typing changes
+    if (selectedActor && selectedActor.name !== val) {
+      setSelectedActor(null); // Clear selected actor if user edits the text
+    }
 
     if (val.trim().length >= 2) {
       try {
@@ -117,11 +126,16 @@ export default function MoviesShowcase({ initialGenres }: { initialGenres: Genre
     setSelectedActor(actor);
     setActorSearchInput(actor.name);
     setActorSuggestions([]);
-    // Clear other filters for simplicity
-    setSelectedGenre('');
   };
 
-  // Perform search from backend APIs (Year, Genre, Actor, or combination)
+  // Clear actor selection
+  const handleClearActor = () => {
+    setSelectedActor(null);
+    setActorSearchInput('');
+    setActorSuggestions([]);
+  };
+
+  // Perform search from backend APIs (any combination of Year, Genre, Actor)
   const handleSearchSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -129,52 +143,28 @@ export default function MoviesShowcase({ initialGenres }: { initialGenres: Genre
     setMovieCast([]);
 
     const yearQuery = searchYear.trim();
+    const genreQuery = selectedGenre.trim();
+    const actorId = selectedActor ? selectedActor.id.toString() : '';
+
+    if (!genreQuery && !actorId && !yearQuery) {
+      showToast('Please select a genre, actor, or enter a release year', 'error');
+      setLoading(false);
+      return;
+    }
 
     try {
-      let res;
-      let moviesList: Movie[] = [];
+      const params = new URLSearchParams();
+      if (genreQuery) params.append('genre', genreQuery);
+      if (actorId) params.append('actor', actorId);
+      if (yearQuery) params.append('year', yearQuery);
 
-      if (selectedActor) {
-        // Case A: Actor filter active
-        res = await fetch(`/api/movies-api/api/actors/${selectedActor.id}`);
-        if (res.ok) {
-          const data = await res.json();
-          const actorMovies = data.movies || [];
-          
-          // If year filter is also active, filter actor's movies locally
-          if (yearQuery !== '') {
-            moviesList = actorMovies.filter((m: any) => m.release_date && m.release_date.startsWith(yearQuery));
-          } else {
-            moviesList = actorMovies;
-          }
-        }
-      } else if (selectedGenre !== '' && yearQuery !== '') {
-        // Case B: Both Genre and Year are selected.
-        res = await fetch(`/api/movies-api/api/genres/${encodeURIComponent(selectedGenre)}/movies`);
-        if (res.ok) {
-          const data = await res.json();
-          const genreMovies = Array.isArray(data) ? data : (data.movies || []);
-          moviesList = genreMovies.filter((m: Movie) => m.release_date && m.release_date.startsWith(yearQuery));
-        }
-      } else if (yearQuery !== '') {
-        // Case C: Only Year is entered.
-        res = await fetch(`/api/movies-api/api/movies/query/year/${encodeURIComponent(yearQuery)}`);
-        if (res.ok) {
-          const data = await res.json();
-          moviesList = Array.isArray(data) ? data : (data.movies || []);
-        }
-      } else if (selectedGenre !== '') {
-        // Case D: Only Genre is selected.
-        res = await fetch(`/api/movies-api/api/genres/${encodeURIComponent(selectedGenre)}/movies`);
-        if (res.ok) {
-          const data = await res.json();
-          moviesList = Array.isArray(data) ? data : (data.movies || []);
-        }
+      const res = await fetch(`/api/movies-api/api/movies/search?${params.toString()}`);
+      let moviesList: Movie[] = [];
+      if (res.ok) {
+        const data = await res.json();
+        moviesList = Array.isArray(data) ? data : (data.movies || []);
       } else {
-        // Case E: All filters empty
-        showToast('Please select a filter or enter a search query', 'error');
-        setLoading(false);
-        return;
+        showToast('Failed to perform search', 'error');
       }
 
       setMovies(moviesList);
@@ -321,8 +311,6 @@ export default function MoviesShowcase({ initialGenres }: { initialGenres: Genre
             value={selectedGenre}
             onChange={(e) => {
               setSelectedGenre(e.target.value);
-              setSelectedActor(null);
-              setActorSearchInput('');
             }}
             onFocus={() => {
               if (genres.length === 0) fetchGenres();
@@ -344,8 +332,30 @@ export default function MoviesShowcase({ initialGenres }: { initialGenres: Genre
               value={actorSearchInput}
               onChange={handleActorInputChange}
               className="search-input"
-              style={{ paddingLeft: '1rem' }}
+              style={{ paddingLeft: '1rem', paddingRight: actorSearchInput ? '2rem' : '1rem' }}
             />
+            {actorSearchInput && (
+              <button
+                type="button"
+                onClick={handleClearActor}
+                style={{
+                  position: 'absolute',
+                  right: '10px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  fontSize: '0.9rem',
+                  lineHeight: 1,
+                  padding: '4px',
+                }}
+                title="Clear actor filter"
+              >
+                ✕
+              </button>
+            )}
             {actorSuggestions.length > 0 && (
               <div style={{
                 position: 'absolute',
@@ -431,7 +441,14 @@ export default function MoviesShowcase({ initialGenres }: { initialGenres: Genre
           <div className="results-container" style={{ width: '100%', animation: 'fadeIn 0.25s ease' }}>
             <div className="section-header">
               <h2 className="section-title">
-                {selectedActor ? `Movies featuring ${selectedActor.name}` : searchYear ? `Movies from ${searchYear}` : selectedGenre ? 'Genre Catalog' : 'Browse Movies'}
+                {(() => {
+                  const parts: string[] = [];
+                  const genreObj = genres.find(g => g.id.toString() === selectedGenre);
+                  if (genreObj) parts.push(`${genreObj.name} Movies`);
+                  if (selectedActor) parts.push(`featuring ${selectedActor.name}`);
+                  if (searchYear) parts.push(`from ${searchYear}`);
+                  return parts.length > 0 ? parts.join(' · ') : 'Browse Movies';
+                })()}
                 <span style={{ color: 'var(--text-secondary)', fontSize: '1rem', fontWeight: 'normal', marginLeft: '0.5rem' }}>
                   ({filteredMovies.length} matches)
                 </span>

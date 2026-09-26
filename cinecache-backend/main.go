@@ -136,6 +136,7 @@ func main() {
 	mux := http.NewServeMux()
 	
 	mux.HandleFunc("GET /api/movies", handleGetMovies)
+	mux.HandleFunc("GET /api/movies/search", handleSearchMovies)
 	mux.HandleFunc("GET /api/movies/{id}", handleGetMovieByID)
 	mux.HandleFunc("GET /api/genres", handleGetGenres)
 	mux.HandleFunc("GET /api/genres/{id}/movies", handleGetMoviesByGenre)
@@ -523,6 +524,81 @@ func handleGetMoviesByYear(w http.ResponseWriter, r *http.Request) {
 		cmds[i] = pipe.HGetAll(ctx, "movie:"+id)
 	}
 	_, _ = pipe.Exec(ctx)
+
+	movies := make([]Movie, 0, len(movieIDs))
+	for i, cmd := range cmds {
+		h, err := cmd.Result()
+		if err == nil && len(h) > 0 {
+			mID, _ := strconv.Atoi(movieIDs[i])
+			movies = append(movies, mapHashToMovie(mID, h))
+		}
+	}
+
+	respondWithJSON(w, http.StatusOK, movies)
+}
+
+// Handler: GET /api/movies/search?genre={id}&actor={id}&year={year}&limit={limit}
+func handleSearchMovies(w http.ResponseWriter, r *http.Request) {
+	genre := r.URL.Query().Get("genre")
+	actor := r.URL.Query().Get("actor")
+	year := r.URL.Query().Get("year")
+
+	var setKeys []string
+	if genre != "" {
+		setKeys = append(setKeys, "genre:"+genre+":movies")
+	}
+	if actor != "" {
+		setKeys = append(setKeys, "actor:"+actor+":movies")
+	}
+	if year != "" {
+		setKeys = append(setKeys, "movies:year:"+year)
+	}
+
+	if len(setKeys) == 0 {
+		respondWithJSON(w, http.StatusOK, []Movie{})
+		return
+	}
+
+	var movieIDs []string
+	var err error
+	if len(setKeys) == 1 {
+		movieIDs, err = vdb.SMembers(ctx, setKeys[0]).Result()
+	} else {
+		movieIDs, err = vdb.SInter(ctx, setKeys...).Result()
+	}
+
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	if len(movieIDs) == 0 {
+		respondWithJSON(w, http.StatusOK, []Movie{})
+		return
+	}
+
+	// Limit results to avoid massive payloads (default 100)
+	limit := 100
+	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 {
+			limit = l
+		}
+	}
+	if len(movieIDs) > limit {
+		movieIDs = movieIDs[:limit]
+	}
+
+	// Fetch movie hashes using pipeline
+	pipe := vdb.Pipeline()
+	cmds := make([]*valkey.MapStringStringCmd, len(movieIDs))
+	for i, id := range movieIDs {
+		cmds[i] = pipe.HGetAll(ctx, "movie:"+id)
+	}
+	_, err = pipe.Exec(ctx)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
 
 	movies := make([]Movie, 0, len(movieIDs))
 	for i, cmd := range cmds {
