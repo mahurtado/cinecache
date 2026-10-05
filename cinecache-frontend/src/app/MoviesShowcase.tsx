@@ -135,6 +135,16 @@ export default function MoviesShowcase({ initialGenres }: { initialGenres: Genre
     setActorSuggestions([]);
   };
 
+  // Clear genre selection
+  const handleClearGenre = () => {
+    setSelectedGenre('');
+  };
+
+  // Clear year selection
+  const handleClearYear = () => {
+    setSearchYear('');
+  };
+
   // Perform search from backend APIs (any combination of Year, Genre, Actor)
   const handleSearchSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -306,123 +316,179 @@ export default function MoviesShowcase({ initialGenres }: { initialGenres: Genre
         </p>
 
         <form className="search-form" onSubmit={handleSearchSubmit}>
-          {/* Select Genre */}
-          <select
-            value={selectedGenre}
-            onChange={(e) => {
-              setSelectedGenre(e.target.value);
-            }}
-            onFocus={() => {
-              if (genres.length === 0) fetchGenres();
-            }}
-            className="search-input"
-            style={{ maxWidth: '250px', paddingLeft: '1rem', cursor: 'pointer' }}
-          >
-            <option value="">All Genres</option>
-            {genres.map(g => (
-              <option key={g.id} value={g.id}>{g.name}</option>
-            ))}
-          </select>
-
-          {/* Actor Autocomplete Type-ahead Filter */}
-          <div className="search-input-wrapper" style={{ position: 'relative', maxWidth: '320px' }}>
-            <input
-              type="text"
-              placeholder="Search by actor name..."
-              value={actorSearchInput}
-              onChange={handleActorInputChange}
-              className="search-input"
-              style={{ paddingLeft: '1rem', paddingRight: actorSearchInput ? '2rem' : '1rem' }}
-            />
-            {actorSearchInput && (
-              <button
-                type="button"
-                onClick={handleClearActor}
-                style={{
-                  position: 'absolute',
-                  right: '10px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  background: 'none',
-                  border: 'none',
-                  color: 'var(--text-secondary)',
-                  cursor: 'pointer',
-                  fontSize: '0.9rem',
-                  lineHeight: 1,
-                  padding: '4px',
-                }}
-                title="Clear actor filter"
-              >
-                ✕
-              </button>
-            )}
-            {actorSuggestions.length > 0 && (
-              <div style={{
-                position: 'absolute',
-                top: '105%',
-                left: 0,
-                width: '100%',
-                background: 'rgba(15, 15, 25, 0.95)',
-                backdropFilter: 'var(--glass-blur)',
-                border: '1px solid var(--card-border)',
-                borderRadius: '12px',
-                zIndex: 100,
-                boxShadow: '0 10px 25px rgba(0,0,0,0.6)',
-                maxHeight: '200px',
-                overflowY: 'auto'
-              }}>
-                {actorSuggestions.map(actor => (
-                  <div
-                    key={actor.id}
-                    onClick={() => handleSelectActor(actor)}
-                    style={{
-                      padding: '0.75rem 1rem',
-                      cursor: 'pointer',
-                      borderBottom: '1px solid rgba(255,255,255,0.03)',
-                      fontSize: '0.9rem',
-                      transition: 'background 0.2s'
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
-                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                  >
-                    {actor.name}
-                  </div>
-                ))}
+          <div className="filter-controls-grid">
+            {/* Genre Filter */}
+            <div className="filter-field filter-genre">
+              <label className="filter-label">
+                <span className="filter-label-icon">🎬</span>
+                <span>Genre</span>
+              </label>
+              <div className="filter-select-wrapper">
+                <select
+                  value={selectedGenre}
+                  onChange={(e) => {
+                    setSelectedGenre(e.target.value);
+                  }}
+                  onFocus={() => {
+                    if (genres.length === 0) fetchGenres();
+                  }}
+                  className="filter-input filter-select"
+                >
+                  <option value="">All Genres</option>
+                  {genres.map(g => (
+                    <option key={g.id} value={g.id}>{g.name}</option>
+                  ))}
+                </select>
+                <div className="select-arrow" aria-hidden="true">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </div>
               </div>
-            )}
+            </div>
+
+            {/* Year Filter */}
+            <div className="filter-field filter-year">
+              <label className="filter-label">
+                <span className="filter-label-icon">📅</span>
+                <span>Release Year</span>
+              </label>
+              <div className="filter-input-wrapper">
+                <svg className="filter-input-icon" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                  <line x1="16" y1="2" x2="16" y2="6" />
+                  <line x1="8" y1="2" x2="8" y2="6" />
+                  <line x1="3" y1="10" x2="21" y2="10" />
+                </svg>
+                <input
+                  type="number"
+                  placeholder="e.g. 2012, 1999"
+                  value={searchYear}
+                  onChange={(e) => {
+                    setSearchYear(e.target.value);
+                  }}
+                  className="filter-input filter-input-with-icon"
+                  min="1800"
+                  max="2100"
+                />
+                {searchYear && (
+                  <button
+                    type="button"
+                    onClick={handleClearYear}
+                    className="clear-field-btn"
+                    title="Clear year filter"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Actor Autocomplete Filter */}
+            <div className="filter-field filter-actor">
+              <label className="filter-label">
+                <span className="filter-label-icon">👤</span>
+                <span>Actor Name</span>
+              </label>
+              <div className="filter-input-wrapper">
+                <svg className="filter-input-icon" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
+                </svg>
+                <input
+                  type="text"
+                  placeholder="Search by actor..."
+                  value={actorSearchInput}
+                  onChange={handleActorInputChange}
+                  className="filter-input filter-input-with-icon"
+                />
+                {actorSearchInput && (
+                  <button
+                    type="button"
+                    onClick={handleClearActor}
+                    className="clear-field-btn"
+                    title="Clear actor filter"
+                  >
+                    ✕
+                  </button>
+                )}
+                {actorSuggestions.length > 0 && (
+                  <div className="actor-autocomplete-dropdown">
+                    {actorSuggestions.map(actor => (
+                      <div
+                        key={actor.id}
+                        onClick={() => handleSelectActor(actor)}
+                        className="actor-autocomplete-item"
+                      >
+                        <span className="actor-icon">👤</span>
+                        <span>{actor.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="filter-actions">
+              <button type="submit" className="search-button search-button-primary" disabled={loading}>
+                {loading ? (
+                  <>
+                    <span className="spinner-sm" />
+                    <span>Searching...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                      <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    <span>Search</span>
+                  </>
+                )}
+              </button>
+
+              {(searchYear || selectedGenre || searchQuery || selectedActor || actorSearchInput) && (
+                <button
+                  type="button"
+                  onClick={handleReset}
+                  className="search-button search-button-reset"
+                  title="Reset all filters"
+                >
+                  <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  <span>Reset</span>
+                </button>
+              )}
+            </div>
           </div>
 
-          {/* Search Year Input */}
-          <div className="search-input-wrapper" style={{ flex: 1 }}>
-            <svg className="search-icon" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-            <input
-              type="number"
-              placeholder="Enter release year (e.g. 2012, 1999)"
-              value={searchYear}
-              onChange={(e) => {
-                setSearchYear(e.target.value);
-              }}
-              className="search-input"
-              min="1800"
-              max="2100"
-            />
-          </div>
-
-          <button type="submit" className="search-button">
-            Search
-          </button>
-
-          {(searchYear || selectedGenre || searchQuery || selectedActor || actorSearchInput) && (
-            <button
-              type="button"
-              onClick={handleReset}
-              className="search-button"
-              style={{ background: 'rgba(255,255,255,0.08)', boxShadow: 'none', color: 'var(--text-primary)' }}
-            >
-              Reset
-            </button>
+          {/* Active Filter Chips Tray */}
+          {(selectedGenre || selectedActor || searchYear) && (
+            <div className="active-filters-chips">
+              <span className="active-filters-label">Active:</span>
+              {selectedGenre && (
+                <span className="filter-chip">
+                  <span>🎬 {genres.find(g => g.id.toString() === selectedGenre)?.name || 'Genre'}</span>
+                  <button type="button" onClick={handleClearGenre} aria-label="Remove genre filter">✕</button>
+                </span>
+              )}
+              {selectedActor && (
+                <span className="filter-chip">
+                  <span>👤 {selectedActor.name}</span>
+                  <button type="button" onClick={handleClearActor} aria-label="Remove actor filter">✕</button>
+                </span>
+              )}
+              {searchYear && (
+                <span className="filter-chip">
+                  <span>📅 {searchYear}</span>
+                  <button type="button" onClick={handleClearYear} aria-label="Remove year filter">✕</button>
+                </span>
+              )}
+              <button type="button" onClick={handleReset} className="filter-chip-clear-all">
+                Clear all
+              </button>
+            </div>
           )}
         </form>
       </section>
@@ -449,20 +515,34 @@ export default function MoviesShowcase({ initialGenres }: { initialGenres: Genre
                   if (searchYear) parts.push(`from ${searchYear}`);
                   return parts.length > 0 ? parts.join(' · ') : 'Browse Movies';
                 })()}
-                <span style={{ color: 'var(--text-secondary)', fontSize: '1rem', fontWeight: 'normal', marginLeft: '0.5rem' }}>
+                <span className="section-count">
                   ({filteredMovies.length} matches)
                 </span>
               </h2>
 
               {/* Quick Local Search Filter */}
-              <input
-                type="text"
-                placeholder="Quick title filter..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="search-input"
-                style={{ maxWidth: '220px', padding: '0.5rem 1rem', borderRadius: '10px', fontSize: '0.9rem' }}
-              />
+              <div className="quick-filter-wrapper">
+                <svg className="quick-filter-icon" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input
+                  type="text"
+                  placeholder="Quick title filter..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="quick-filter-input"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="clear-field-btn"
+                    title="Clear title filter"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
             </div>
 
             {loading ? (
@@ -650,7 +730,7 @@ export default function MoviesShowcase({ initialGenres }: { initialGenres: Genre
                 {movieCast && movieCast.length > 0 && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', marginTop: '0.5rem' }}>
                     <h3 style={{ fontSize: '1.2rem', fontWeight: '600', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '0.5rem' }}>Top Billing Cast</h3>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '1rem' }}>
+                    <div className="top-cast-grid">
                       {movieCast.map((actor, idx) => (
                         <div key={idx} style={{ padding: '0.85rem', background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '10px', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                           <span style={{ fontSize: '0.95rem', fontWeight: '600' }}>{actor.name}</span>
